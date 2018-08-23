@@ -2,6 +2,7 @@
 import mutagen
 import os
 import subprocess
+import argparse
 from multiprocessing import Pool,current_process,cpu_count
 from shutil import copyfile
 from mutagen.mp3 import MP3
@@ -13,9 +14,9 @@ from mutagen.mp3 import MP3
 # this stuff is worth it, you can buy me a beer in return 
 # ----------------------------------------------------------------------------
 
-source="Musik"
-prefix="klein"
-bitrate=128
+
+prefix=None
+bitrate=None
 
 def copy_id3(srcname, destname):
     src = mutagen.File(srcname, easy=True)
@@ -67,24 +68,37 @@ def reencode_mpc(path):
     copy_id3(path,prefix+path[:-3]+"mp3")
     os.remove(tmpfile)
 
-pool = Pool(cpu_count())
-
-for root, dirs, files in os.walk(source, topdown=False):
-    if not os.path.isdir(prefix+root):
-        os.makedirs(prefix+root)
-    for name in files:
-        if name.lower().endswith("mp3"):
-            pool.apply_async(reencode_mp3,(os.path.join(root, name),))
-        elif name.lower().endswith("flac"):
-            pool.apply_async(reencode_flac,(os.path.join(root, name),))
-        elif name.lower().endswith("ogg"):
-            pool.apply_async(reencode_ogg,(os.path.join(root,name),))
-        elif name.lower().endswith("wma"):
-            pool.apply_async(reencode_wma,(os.path.join(root, name),))
-        elif name.lower().endswith("mpc"):
-            pool.apply_async(reencode_mpc,(os.path.join(root, name),))
-        elif name.lower().endswith("m4a"):
-            pool.apply_async(reencode_m4a,(os.path.join(root, name),))
-pool.close()
-pool.join()
+if __name__ == "__main__":
+    #argstuff
+    parser=argparse.ArgumentParser(description='resize your music! runs parallel, keeps your ID3 tags, skips already-small files')
+    parser.add_argument('-w',type=int,default=cpu_count(),help="how many processes to use")
+    parser.add_argument('-i',type=str,default="Musik",help="Input-directory")
+    parser.add_argument('-o',type=str,default="klein",help="Prefix for the Output-directory")
+    parser.add_argument('-b',type=int,default=128,help="Target-Bitrate")
+    parser.add_argument('-h',action="store_true",help="print this help")
+    args=parser.parse_args()
+    if args.help:
+        parser.print_help(sys.stderr)
+        exit()        
+    pool = Pool(args.w)
+    prefix=args.o
+    bitrate=args.b
+    for root, dirs, files in os.walk(args.i, topdown=False):
+        if not os.path.isdir(prefix+root):
+            os.makedirs(prefix+root)
+        for name in files:
+            if name.lower().endswith("mp3"):
+                pool.apply_async(reencode_mp3,(os.path.join(root, name),))
+            elif name.lower().endswith("flac"):
+                pool.apply_async(reencode_flac,(os.path.join(root, name),))
+            elif name.lower().endswith("ogg"):
+                pool.apply_async(reencode_ogg,(os.path.join(root,name),))
+            elif name.lower().endswith("wma"):
+                pool.apply_async(reencode_wma,(os.path.join(root, name),))
+            elif name.lower().endswith("mpc"):
+                pool.apply_async(reencode_mpc,(os.path.join(root, name),))
+            elif name.lower().endswith("m4a"):
+                pool.apply_async(reencode_m4a,(os.path.join(root, name),))
+    pool.close()
+    pool.join()
     

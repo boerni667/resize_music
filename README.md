@@ -11,9 +11,9 @@ resize_music is for the rescue!
 
 reencodes your complete music to fix (low) bitrate mp3's. Currently supports mp3, flac, ogg, musepack, wma and m4a.
 
-runs parallel!
+runs parallel! keeps the ID3 tags!
 
-needs lame, flac, oggdec, mpcdec, ffmpeg and faad.
+needs lame, flac, oggdec, mpcdec, ffmpeg and faad and the python mutagen package.
 
 
 just edit the file and adjust path to source, prefix to add for the new collection and the target bitrate. Also creates the filestructure.

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3.5
 import mutagen
 import os
 import subprocess
@@ -36,7 +36,7 @@ def reencode_mp3(path):
         copyfile(path,prefix+path)
         
 def reencode_m4a(path):
-    tmpfile=str(current_process().name)+".tmp"
+    tmpfile=str(current_process().name)+".wav"
     subprocess.call(("faad","-q","-o",tmpfile,path))
     subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-3]+"mp3"))
     copy_id3(path,prefix+path[:-3]+"mp3")
@@ -44,7 +44,7 @@ def reencode_m4a(path):
 
 def reencode_wma(path):
     tmpfile=str(current_process().name)+".wav"
-    subprocess.call(("ffmpeg","-i",path,tmpfile))
+    subprocess.call(("ffmpeg","-y","-i",path,tmpfile))
     subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-3]+"mp3"))
     copy_id3(path,prefix+path[:-3]+"mp3")
     os.remove(tmpfile)
@@ -75,11 +75,7 @@ if __name__ == "__main__":
     parser.add_argument('-i',type=str,default="Musik",help="Input-directory")
     parser.add_argument('-o',type=str,default="klein",help="Prefix for the Output-directory")
     parser.add_argument('-b',type=int,default=128,help="Target-Bitrate")
-    parser.add_argument('-h',action="store_true",help="print this help")
     args=parser.parse_args()
-    if args.help:
-        parser.print_help(sys.stderr)
-        exit()        
     pool = Pool(args.w)
     prefix=args.o
     bitrate=args.b
@@ -101,4 +97,3 @@ if __name__ == "__main__":
                 pool.apply_async(reencode_m4a,(os.path.join(root, name),))
     pool.close()
     pool.join()
-    

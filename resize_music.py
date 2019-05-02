@@ -3,6 +3,7 @@ import mutagen
 import os
 import subprocess
 import argparse
+import traceback
 from multiprocessing import Pool,current_process,cpu_count
 from shutil import copyfile
 from mutagen.mp3 import MP3
@@ -15,59 +16,95 @@ from mutagen.mp3 import MP3
 # ----------------------------------------------------------------------------
 
 
-prefix=None
-bitrate=None
 
 def copy_id3(srcname, destname):
-    src = mutagen.File(srcname, easy=True)
-    dest = mutagen.File(destname, easy=True)
-    for k in src:
-        try:
-            dest[k] = src[k]
-        except:
-            continue
-    dest.save()
+    try:
+        src = mutagen.File(srcname, easy=True)
+        dest = mutagen.File(destname, easy=True)
+        for k in src:
+            try:
+                dest[k] = src[k]
+            except:
+                continue
+        dest.save()
+    except Exception as e:
+        with open("errors.txt",'a') as f:
+            traceback.print_exc(file=f)
 
 def reencode_mp3(path):
-    f=MP3(path)
-    if bitrate < int(f.info.bitrate / 1000):
-        subprocess.call(("lame","--quiet","-b",str(bitrate),path,prefix+path))
-    else:
-        copyfile(path,prefix+path)
+    try:
+        f=MP3(path)
+        if bitrate < int(f.info.bitrate / 1000):
+            subprocess.call(("lame","--quiet","-b",str(bitrate),path,prefix+path))
+        else:
+            copyfile(path,prefix+path)
+    except Exception as e:
+        with open("errors.txt",'a') as f:
+            traceback.print_exc(file=f)
         
 def reencode_m4a(path):
-    tmpfile=str(current_process().name)+".wav"
-    subprocess.call(("faad","-q","-o",tmpfile,path))
-    subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-3]+"mp3"))
-    copy_id3(path,prefix+path[:-3]+"mp3")
-    os.remove(tmpfile)
+    try:
+        tmpfile=str(current_process().name)+".wav"
+        subprocess.call(("faad","-q","-o",tmpfile,path))
+        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-3]+"mp3"))
+        copy_id3(path,prefix+path[:-3]+"mp3")
+        os.remove(tmpfile)
+    except Exception as e:
+        with open("errors.txt",'a') as f:
+            traceback.print_exc(file=f)
 
 def reencode_wma(path):
-    tmpfile=str(current_process().name)+".wav"
-    subprocess.call(("ffmpeg","-y","-i",path,tmpfile))
-    subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-3]+"mp3"))
-    copy_id3(path,prefix+path[:-3]+"mp3")
-    os.remove(tmpfile)
+    try:
+        tmpfile=str(current_process().name)+".wav"
+        subprocess.call(("ffmpeg","-y","-i",path,tmpfile))
+        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-3]+"mp3"))
+        copy_id3(path,prefix+path[:-3]+"mp3")
+        os.remove(tmpfile)
+    except Exception as e:
+        with open("errors.txt",'a') as f:
+            traceback.print_exc(file=f)
 
 def reencode_flac(path):
-    subprocess.call(("flac","-d","-f",path))
-    subprocess.call(("lame","--quiet","-b",str(bitrate),path[:-4]+"wav",prefix+path[:-4]+"mp3"))
-    copy_id3(path,prefix+path[:-4]+"mp3")
-    os.remove(path[:-4]+"wav")
+    global bitrate
+    try:
+        tmpfile="/tmp/"+str(current_process().name)+".wav"
+        subprocess.call(("flac","-d","-f",path,"-o",tmpfile))
+        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,tmpfile[:-3]+"mp3"))
+        subprocess.call(("cp",tmpfile[:-3]+"mp3",prefix+path[:-3]+"mp3"))
+        copy_id3(path,prefix+path[:-3]+"mp3")
+        os.remove(tmpfile)
+        os.remove(tmpfile[:-3]+"mp3")
+    except Exception as e:
+        with open("errors.txt",'a') as f:
+            traceback.print_exc(file=f)
 
 def reencode_ogg(path):
-    subprocess.call(("oggdec",path))
-    subprocess.call(("lame","--quiet","-b",str(bitrate),path[:-3]+"wav",prefix+path[:-3]+"mp3"))
-    copy_id3(path,prefix+path[:-3]+"mp3")
-    os.remove(path[:-3]+"wav")
+    try:
+        subprocess.call(("oggdec",path))
+        subprocess.call(("lame","--quiet","--quiet","-b",str(bitrate),path[:-4]+"wav",prefix+path[:-4]+"mp3"))
+        copy_id3(path,prefix+path[:-3]+"mp3")
+        os.remove(path[:-3]+"wav")
+    except Exception as e:
+        with open("errors.txt",'a') as f:
+            traceback.print_exc(file=f)
 
 def reencode_mpc(path):
-    tmpfile=str(current_process().name)+".wav"
-    subprocess.call(("mpcdec",path,tmpfile))
-    subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-3]+"mp3"))
-    copy_id3(path,prefix+path[:-3]+"mp3")
-    os.remove(tmpfile)
-
+    try:
+        tmpfile=str(current_process().name)+".wav"
+        subprocess.call(("mpcdec",path,tmpfile))
+        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-3]+"mp3"))
+        copy_id3(path,prefix+path[:-3]+"mp3")
+        os.remove(tmpfile)
+    except Exception as e:
+        with open("errors.txt",'a') as f:
+            traceback.print_exc(file=f)
+            
+def init(p,b):
+    global prefix
+    global bitrate
+    prefix=p
+    bitrate=b
+    
 if __name__ == "__main__":
     #argstuff
     parser=argparse.ArgumentParser(description='resize your music! runs parallel, keeps your ID3 tags, skips already-small files')
@@ -76,12 +113,10 @@ if __name__ == "__main__":
     parser.add_argument('-o',type=str,default="klein",help="Prefix for the Output-directory")
     parser.add_argument('-b',type=int,default=128,help="Target-Bitrate")
     args=parser.parse_args()
-    pool = Pool(args.w)
-    prefix=args.o
-    bitrate=args.b
+    pool = Pool(args.w,initializer=init,initargs=(args.o,args.b,))
     for root, dirs, files in os.walk(args.i, topdown=False):
-        if not os.path.isdir(prefix+root):
-            os.makedirs(prefix+root)
+        if not os.path.isdir(args.o+root):
+            os.makedirs(args.o+root)
         for name in files:
             if name.lower().endswith("mp3"):
                 pool.apply_async(reencode_mp3,(os.path.join(root, name),))

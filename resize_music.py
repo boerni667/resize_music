@@ -1,4 +1,4 @@
-#!/usr/bin/python3.5
+#!/usr/bin/python3
 import mutagen
 import os
 import subprocess
@@ -69,11 +69,11 @@ def reencode_flac(path):
     try:
         tmpfile="/tmp/"+str(current_process().name)+".wav"
         subprocess.call(("flac","-d","-f",path,"-o",tmpfile))
-        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,tmpfile[:-3]+"mp3"))
-        subprocess.call(("cp",tmpfile[:-3]+"mp3",prefix+path[:-3]+"mp3"))
-        copy_id3(path,prefix+path[:-3]+"mp3")
+        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,tmpfile[:-4]+".mp3"))
+        subprocess.call(("cp",tmpfile[:-4]+".mp3",prefix+path[:-4]+".mp3"))
+        copy_id3(path,prefix+path[:-4]+".mp3")
         os.remove(tmpfile)
-        os.remove(tmpfile[:-3]+"mp3")
+        os.remove(tmpfile[:-4]+".mp3")
     except Exception as e:
         with open("errors.txt",'a') as f:
             traceback.print_exc(file=f)
@@ -82,7 +82,7 @@ def reencode_ogg(path):
     try:
         subprocess.call(("oggdec",path))
         subprocess.call(("lame","--quiet","--quiet","-b",str(bitrate),path[:-4]+"wav",prefix+path[:-4]+"mp3"))
-        copy_id3(path,prefix+path[:-3]+"mp3")
+        copy_id3(path,prefix+path[:-4]+".mp3")
         os.remove(path[:-3]+"wav")
     except Exception as e:
         with open("errors.txt",'a') as f:
@@ -92,8 +92,8 @@ def reencode_mpc(path):
     try:
         tmpfile=str(current_process().name)+".wav"
         subprocess.call(("mpcdec",path,tmpfile))
-        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-3]+"mp3"))
-        copy_id3(path,prefix+path[:-3]+"mp3")
+        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-4]+"mp3"))
+        copy_id3(path,prefix+path[:-4]+"mp3")
         os.remove(tmpfile)
     except Exception as e:
         with open("errors.txt",'a') as f:

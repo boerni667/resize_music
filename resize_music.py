@@ -70,7 +70,7 @@ def reencode_flac(path):
         tmpfile="/tmp/"+str(current_process().name)+".wav"
         subprocess.call(("flac","-d","-f",path,"-o",tmpfile))
         subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,tmpfile[:-4]+".mp3"))
-        subprocess.call(("cp",tmpfile[:-4]+".mp3",prefix+path[:-4]+".mp3"))
+        subprocess.call(("cp",tmpfile[:-4]+".mp3",prefix+path[:-5]+".mp3"))
         copy_id3(path,prefix+path[:-4]+".mp3")
         os.remove(tmpfile)
         os.remove(tmpfile[:-4]+".mp3")

@@ -7,7 +7,7 @@ import traceback
 from multiprocessing import Pool,current_process,cpu_count
 from shutil import copyfile
 from mutagen.mp3 import MP3
-
+from uuid import uuid4
 # ----------------------------------------------------------------------------
 # "THE BEER-WARE LICENSE" (Revision 42):
 # <boerni@pakke.de> wrote this file. As long as you retain this notice you
@@ -18,9 +18,12 @@ from mutagen.mp3 import MP3
 
 
 def copy_id3(srcname, destname):
+    dst_spltfld = destname.split('.')
+    dst_spltfld[-1] = 'mp3'
+    destpath = '.'.join(dst_spltfld)
     try:
         src = mutagen.File(srcname, easy=True)
-        dest = mutagen.File(destname, easy=True)
+        dest = mutagen.File(destpath, easy=True)
         for k in src:
             try:
                 dest[k] = src[k]
@@ -44,10 +47,10 @@ def reencode_mp3(path):
         
 def reencode_m4a(path):
     try:
-        tmpfile=str(current_process().name)+".wav"
+        tmpfile="/tmp/"+str(uuid4())+".wav"
         subprocess.call(("faad","-q","-o",tmpfile,path))
-        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-3]+"mp3"))
-        copy_id3(path,prefix+path[:-3]+"mp3")
+        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-4]+".mp3"))
+        copy_id3(path,prefix+path)
         os.remove(tmpfile)
     except Exception as e:
         with open("errors.txt",'a') as f:
@@ -55,10 +58,10 @@ def reencode_m4a(path):
 
 def reencode_wma(path):
     try:
-        tmpfile=str(current_process().name)+".wav"
+        tmpfile="/tmp/"+str(uuid4())+".wav"
         subprocess.call(("ffmpeg","-y","-i",path,tmpfile))
-        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-3]+"mp3"))
-        copy_id3(path,prefix+path[:-3]+"mp3")
+        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-4]+".mp3"))
+        copy_id3(path,prefix+path)
         os.remove(tmpfile)
     except Exception as e:
         with open("errors.txt",'a') as f:
@@ -67,22 +70,22 @@ def reencode_wma(path):
 def reencode_flac(path):
     global bitrate
     try:
-        tmpfile="/tmp/"+str(current_process().name)+".wav"
+        tmpfile="/tmp/"+str(uuid4())+".wav"
         subprocess.call(("flac","-d","-f",path,"-o",tmpfile))
-        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,tmpfile[:-4]+".mp3"))
-        subprocess.call(("cp",tmpfile[:-4]+".mp3",prefix+path[:-5]+".mp3"))
-        copy_id3(path,prefix+path[:-4]+".mp3")
+        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,tmpfile[:-3]+"mp3"))
+        subprocess.call(("cp",tmpfile[:-3]+"mp3",prefix+path[:-4]+"mp3"))
+        copy_id3(path,prefix+path)
         os.remove(tmpfile)
-        os.remove(tmpfile[:-4]+".mp3")
+        os.remove(tmpfile[:-3]+"mp3")
     except Exception as e:
         with open("errors.txt",'a') as f:
-            traceback.print_exc(file=f)
+           traceback.print_exc(file=f)
 
 def reencode_ogg(path):
     try:
         subprocess.call(("oggdec",path))
-        subprocess.call(("lame","--quiet","--quiet","-b",str(bitrate),path[:-4]+"wav",prefix+path[:-4]+"mp3"))
-        copy_id3(path,prefix+path[:-4]+".mp3")
+        subprocess.call(("lame","--quiet","--quiet","-b",str(bitrate),path[:-4]+"wav",prefix+path[:-4]+".mp3"))
+        copy_id3(path,prefix+path)
         os.remove(path[:-3]+"wav")
     except Exception as e:
         with open("errors.txt",'a') as f:
@@ -90,10 +93,10 @@ def reencode_ogg(path):
 
 def reencode_mpc(path):
     try:
-        tmpfile=str(current_process().name)+".wav"
+        tmpfile="/tmp/"+str(uuid4())+".wav"
         subprocess.call(("mpcdec",path,tmpfile))
-        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-4]+"mp3"))
-        copy_id3(path,prefix+path[:-4]+"mp3")
+        subprocess.call(("lame","--quiet","-b",str(bitrate),tmpfile,prefix+path[:-4]+".mp3"))
+        copy_id3(path,prefix+path)
         os.remove(tmpfile)
     except Exception as e:
         with open("errors.txt",'a') as f:

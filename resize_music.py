@@ -84,7 +84,7 @@ def reencode_flac(path):
 def reencode_ogg(path):
     try:
         subprocess.call(("oggdec",path))
-        subprocess.call(("lame","--quiet","--quiet","-b",str(bitrate),path[:-4]+"wav",prefix+path[:-4]+".mp3"))
+        subprocess.call(("lame","--quiet","--quiet","-b",str(bitrate),path[:-4]+".wav",prefix+path[:-4]+".mp3"))
         copy_id3(path,prefix+path)
         os.remove(path[:-3]+"wav")
     except Exception as e:

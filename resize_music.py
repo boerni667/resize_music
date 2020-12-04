@@ -66,7 +66,7 @@ def transform(_format, _in, _out):
             toDelete.append(_out)
         elif _format == "lame":  # encode
             call_obj = ("lame", "--quiet", "-b", str(bitrate), _in, _out)
-        elif _format == "aac":  # encode
+        elif _format == "aac" or _format == "m4a":  # encode
             call_obj = ("faac", "-v0", "-b", str(bitrate), "-o", _out, _in)
             toDelete.append(change_ending(_in, "wav"))
         else:
@@ -76,7 +76,8 @@ def transform(_format, _in, _out):
     except Exception as e:
         with open("errors.txt", 'a') as f:
             traceback.print_exc(file=f)
-    return toDelete
+    finally:
+        return toDelete
 
 def copy_id3(srcname, destname):
     if not encoding == "aac":
@@ -94,12 +95,17 @@ def reencode_generic2wav2target(path, codec):
     toDelete = []
     tmpfile = "/tmp/" + str(uuid4()) + ".wav"
     target_file = change_ending(prefix + path, encoding)
-    toDelete + transform(codec, path, tmpfile)
-    toDelete + transform(encoding, tmpfile, target_file)
-    toDelete.append(tmpfile)
-    copy_id3(path, target_file)
-    for item in toDelete:
-        remove(item)
+    try:
+        toDelete + transform(codec, path, tmpfile)
+        toDelete + transform(encoding, tmpfile, target_file)
+        toDelete.append(tmpfile)
+        copy_id3(path, target_file)
+    except Exception as e:
+        with open("errors.txt", 'a') as f:
+            traceback.print_exc(file=f)
+    finally:
+        for item in toDelete:
+            remove(item)
 
 
 def reencode_native(path, source_codec):

@@ -69,7 +69,8 @@ def transform(_format, _in, _out, _id3obj):
             copy_id3(_id3obj, _out)
         elif _format == "aac" or _format == "m4a":  # encode
             _call_obj = ["faac", "-v0", "-b", str(bitrate), "-w"]
-            _map_tags={"artist":["artist","TPE"],
+            if _id3obj:
+                _map_tags={"artist":["artist","TPE"],
                        "year":["year","TDRC"],
                        "album":["album","TALB"],
                        "track":["tracknumber","TRCK"],
@@ -78,13 +79,17 @@ def transform(_format, _in, _out, _id3obj):
                        "disc":["disc","TPOS"],
                        "comment":["comment","COMM"]
                        }
-            for obj in _id3obj:
                 for key, value in _map_tags.items():
-                    for _searchitem in value:
-                        if _searchitem in obj:
-                            _call_obj.append("--"+key)
-                            _call_obj.append(str(_id3obj[obj][0]))
-                            break
+                    for obj in _id3obj:
+                        for _searchitem in value:
+                            if _searchitem in obj:
+                                try:
+                                    _key = ("--"+key)
+                                    _value = (str(_id3obj[obj][0]))
+                                    _call_obj.append(_key)
+                                    _call_obj.append(_value)
+                                except TypeError:
+                                    continue
             _call_obj.append("-o")
             _call_obj.append(_out)
             _call_obj.append(_in)

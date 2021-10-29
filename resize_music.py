@@ -43,7 +43,7 @@ def remove(path):
         os.remove(path)
 
 
-def transform(_format, _in, _out):
+def transform(_format, _in, _out, _id3obj):
     toDelete = []
     try:
         if _format == "mp3":  # decode
@@ -66,8 +66,26 @@ def transform(_format, _in, _out):
             toDelete.append(_out)
         elif _format == "lame":  # encode
             call_obj = ("lame", "--quiet", "-b", str(bitrate), _in, _out)
+            copy_id3(_id3obj, _out)
         elif _format == "aac" or _format == "m4a":  # encode
-            call_obj = ("faac", "-v0", "-b", str(bitrate), "-o", _out, _in)
+            _call_obj = ["faac", "-v0", "-b", str(bitrate), "-w"]
+            for obj in _id3obj:
+                if "artist" in obj:
+                    _call_obj.append("--artist")
+                    _call_obj.append(_id3obj[obj][0])
+                if "date" in obj:
+                    _call_obj.append("--year")
+                    _call_obj.append(_id3obj[obj][0])
+                if "album" in obj:
+                    _call_obj.append("--album")
+                    _call_obj.append(_id3obj[obj][0])
+                if "tracknumber" in obj:
+                    _call_obj.append("--track")
+                    _call_obj.append(_id3obj[obj][0])
+            _call_obj.append("-o")
+            _call_obj.append(_out)
+            _call_obj.append(_in)
+            call_obj = (* _call_obj, )
             toDelete.append(change_ending(_in, "wav"))
         else:
             raise ValueError("{} not supported".format(_format))
@@ -79,12 +97,20 @@ def transform(_format, _in, _out):
     finally:
         return toDelete
 
-def copy_id3(srcname, destname):
+def read_id3(srcname):
+    src = mutagen.File(srcname)
+    ret = {}
+    for k in src:
+        ret[k] = src[k]
+    return ret if ret else None
+
+
+def copy_id3(src_obj, destname):
     if not encoding == "aac":
-        src = mutagen.File(srcname, easy=True)
         dest = mutagen.File(destname, easy=True)
-        for k in src:
-            dest[k] = src[k]
+        if src_obj:
+            for k in src_obj:
+                dest[k] = src_obj[k]
         dest.save()
     #except Exception as e:
         #with open("errors.txt", 'a') as f:
@@ -95,11 +121,11 @@ def reencode_generic2wav2target(path, codec):
     toDelete = []
     tmpfile = "/tmp/" + str(uuid4()) + ".wav"
     target_file = change_ending(prefix + path, encoding)
+    id3obj = read_id3(path)
     try:
-        toDelete + transform(codec, path, tmpfile)
-        toDelete + transform(encoding, tmpfile, target_file)
+        toDelete + transform(codec, path, tmpfile, id3obj)
+        toDelete + transform(encoding, tmpfile, target_file, id3obj)
         toDelete.append(tmpfile)
-        copy_id3(path, target_file)
     except Exception as e:
         with open("errors.txt", 'a') as f:
             traceback.print_exc(file=f)

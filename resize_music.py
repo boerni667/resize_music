@@ -69,19 +69,22 @@ def transform(_format, _in, _out, _id3obj):
             copy_id3(_id3obj, _out)
         elif _format == "aac" or _format == "m4a":  # encode
             _call_obj = ["faac", "-v0", "-b", str(bitrate), "-w"]
+            _map_tags={"artist":["artist","TPE"],
+                       "year":["year","TDRC"],
+                       "album":["album","TALB"],
+                       "track":["tracknumber","TRCK"],
+                       "genre":["genre","TCON"],
+                       "composer":["composer","TCOM"],
+                       "disc":["disc","TPOS"],
+                       "comment":["comment","COMM"]
+                       }
             for obj in _id3obj:
-                if "artist" in obj:
-                    _call_obj.append("--artist")
-                    _call_obj.append(_id3obj[obj][0])
-                if "date" in obj:
-                    _call_obj.append("--year")
-                    _call_obj.append(_id3obj[obj][0])
-                if "album" in obj:
-                    _call_obj.append("--album")
-                    _call_obj.append(_id3obj[obj][0])
-                if "tracknumber" in obj:
-                    _call_obj.append("--track")
-                    _call_obj.append(_id3obj[obj][0])
+                for key, value in _map_tags.items():
+                    for _searchitem in value:
+                        if _searchitem in obj:
+                            _call_obj.append("--"+key)
+                            _call_obj.append(str(_id3obj[obj][0]))
+                            break
             _call_obj.append("-o")
             _call_obj.append(_out)
             _call_obj.append(_in)
